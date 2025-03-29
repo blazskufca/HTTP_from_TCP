@@ -4,8 +4,9 @@ from typing import Tuple
 CRLF = '\r\n'
 TOKEN_CHARS = set(b"!$%&'*+-.^_`|~")
 
-class Headers:
-    def __init__(self) -> None:
+class Headers(dict):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.headers = {}
 
     def __setitem__(self, key: str, value: str) -> None:
