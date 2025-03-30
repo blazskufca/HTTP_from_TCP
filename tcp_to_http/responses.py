@@ -1,6 +1,6 @@
 from enum import IntEnum
 
-from headers import Headers
+from .headers import Headers
 
 
 class StatusCode(IntEnum):
@@ -19,7 +19,7 @@ def get_status_line(status_code: StatusCode) -> bytes:
             status_line % (status_code.value , "Internal Server Error"),
     }
     return status_lines.get(status_code,
-                            f"HTTP/1.1 {status_code} \r\n".encode()).encode("utf-8")
+                            f"HTTP/1.1 {status_code} \r\n").encode("utf-8")
 
 def get_default_headers(content_len: int) -> Headers:
     h = Headers()

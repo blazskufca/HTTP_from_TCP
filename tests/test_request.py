@@ -1,7 +1,7 @@
 import socket
 import unittest
 
-from request import request_from_reader
+from tcp_to_http.request import request_from_reader
 
 
 class MockSocket(socket.socket):

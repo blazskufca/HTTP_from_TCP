@@ -1,6 +1,6 @@
 import unittest
 
-from headers import Headers
+from tcp_to_http.headers import Headers
 
 
 class TestHeadersParse(unittest.TestCase):

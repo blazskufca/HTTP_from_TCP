@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Optional
 
-from headers import Headers
+from .headers import Headers
 
 # Constants
 BUFFER_SIZE = 8

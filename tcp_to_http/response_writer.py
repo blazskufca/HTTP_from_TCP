@@ -1,8 +1,8 @@
 from enum import IntEnum, auto
 from socket import socket
 
-from headers import Headers
-from responses import StatusCode, get_status_line
+from .headers import Headers
+from .responses import StatusCode, get_status_line
 
 
 class WriterState(IntEnum):

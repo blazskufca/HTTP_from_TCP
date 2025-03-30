@@ -1,21 +1,15 @@
-import logging
 import signal
 import socket
 import threading
 from types import FrameType
 from typing import Callable
 
-from request import Request, request_from_reader
-from response_writer import Writer
-from responses import StatusCode, get_default_headers
+from .logger import get_logger
+from .request import Request, request_from_reader
+from .response_writer import Writer
+from .responses import StatusCode, get_default_headers
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="[%(levelname)s] %(asctime)s - %(message)s",
-    datefmt="%d-%m-%Y %H-%M-%S",
-)
-
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 Handler = Callable[[Writer, Request], None]
 

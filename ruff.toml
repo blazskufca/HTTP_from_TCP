@@ -1,0 +1,33 @@
+[lint]
+select = [
+    "E",
+    "F",
+    "W",
+    "I",
+    "N",
+    "UP",
+    "YTT",
+    "ANN",
+    "S",
+    "B",
+    "A",
+    "C4",
+    "T10",
+    "EM",
+    "PIE",
+    "PT",
+    "Q",
+    "RUF",
+]
+
+# Exclude common directories
+exclude = [
+    ".git",
+    ".idea",
+    ".venv",
+    "venv",
+    "__pycache__",
+]
+
+[lint.per-file-ignores]
+"tests/*.py" = ["PT009", "PT027", "B017", "N802"]
