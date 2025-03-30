@@ -3,6 +3,9 @@
 ***This project implements a simple [Go](https://go.dev/)-like threaded [`HTTP 1.1`](https://datatracker.ietf.org/doc/html/rfc9112)
 server in Python.***
 
+## Install
+You can install the package by running: `pip install git+ssh://git@github.com/blazskufca/HTTP_from_TCP.git`
+
 ## Usage
 
 If you're familiar with the [Go `net/http`](https://pkg.go.dev/net/http) package, this should feel quite familiar.
@@ -42,7 +45,8 @@ if __name__ == "__main__":
     s.listen()
 ```
 
-![Served `HTML` page](https://github-production-user-asset-6210df.s3.amazonaws.com/3877198/428391565-b0ce1a46-0870-46a1-a1ae-50bb5d979c82.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250330%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250330T115430Z&X-Amz-Expires=300&X-Amz-Signature=177af4c48654379a17541ecf9ddb18677fdb26fc8603e7301e2a083cbb846a0e&X-Amz-SignedHeaders=host)
+![Serving `HTML` pages](https://github.com/user-attachments/assets/7087a584-fff4-4ebb-89e6-52026b80f74f)
+
 
 ```text
 [INFO] 30-03-2025 13-27-16 - Server listening on port localhost:42069
