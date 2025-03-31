@@ -1,4 +1,4 @@
-import socket
+import asyncio
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Optional
@@ -85,34 +85,22 @@ class Request:
                 raise RuntimeError(msg)
 
 
-def request_from_reader(sock: socket.socket) -> Request:
-    buf = bytearray(BUFFER_SIZE)
-    read_to_idx = 0
+async def request_from_reader(reader: asyncio.StreamReader) -> Request:
     request = Request()
+    buf = bytearray()
 
     while request.state != ParserState.DONE:
-        if read_to_idx >= len(buf):
-            new_buf = bytearray(len(buf) * 2)
-            new_buf[:read_to_idx] = buf[:read_to_idx]
-            buf = new_buf
+        chunk = await reader.read(BUFFER_SIZE)
+        if not chunk:
+            if request.state != ParserState.DONE:
+                msg = (f"incomplete request, in state: "
+                       f"{request.state}, connection closed")
+                raise ValueError(msg)
+            break
 
-        try:
-            chunk = sock.recv(len(buf) - read_to_idx)
-            if not chunk:
-                if request.state != ParserState.DONE:
-                    msg = (f"incomplete request, in state: "
-                           f"{request.state}, connection closed")
-                    raise ValueError(msg)
-                break
-
-            buf[read_to_idx:read_to_idx + len(chunk)] = chunk
-            read_to_idx += len(chunk)
-
-            consumed = request.parse(buf[:read_to_idx])
-            buf[:read_to_idx - consumed] = buf[consumed:read_to_idx]
-            read_to_idx -= consumed
-        except socket.timeout:
-            continue
+        buf.extend(chunk)
+        consumed = request.parse(buf)
+        buf = buf[consumed:]
     return request
 
 
