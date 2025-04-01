@@ -3,7 +3,7 @@ import unittest
 from collections.abc import Coroutine
 from typing import Any
 
-from tcp_to_http.request import request_from_reader
+from tcp_to_http.request import Request
 
 
 class MockStreamReader(asyncio.StreamReader):
@@ -40,7 +40,7 @@ class TestRequestParsingRequestLine(unittest.TestCase):
                  "User-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
             num_bytes_per_read=3
         )
-        r = self.loop.run_until_complete(request_from_reader(mock_reader))
+        r = self.loop.run_until_complete(Request.from_reader(mock_reader))
         self.assertIsNotNone(r)
         self.assertEqual(r.request_line.method, "GET")
         self.assertEqual(r.request_line.request_target, "/")
@@ -53,7 +53,7 @@ class TestRequestParsingRequestLine(unittest.TestCase):
                  "\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
             num_bytes_per_read=1
         )
-        r = self.loop.run_until_complete(request_from_reader(mock_reader))
+        r = self.loop.run_until_complete(Request.from_reader(mock_reader))
         self.assertIsNotNone(r)
         self.assertEqual(r.request_line.method, "GET")
         self.assertEqual(r.request_line.request_target, "/coffee")
@@ -67,7 +67,7 @@ class TestRequestParsingRequestLine(unittest.TestCase):
             num_bytes_per_read=3
         )
         with self.assertRaises(Exception):
-            self.loop.run_until_complete(request_from_reader(mock_reader))
+            self.loop.run_until_complete(Request.from_reader(mock_reader))
 
     def test_good_POST_request_line(self) -> None:
         # Test: Good POST Request line with path
@@ -77,7 +77,7 @@ class TestRequestParsingRequestLine(unittest.TestCase):
                  "User-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
             num_bytes_per_read=5
         )
-        r = self.loop.run_until_complete(request_from_reader(mock_reader))
+        r = self.loop.run_until_complete(Request.from_reader(mock_reader))
         self.assertIsNotNone(r)
         self.assertEqual(r.request_line.method, "POST")
         self.assertEqual(r.request_line.request_target, "/coffee")
@@ -92,7 +92,7 @@ class TestRequestParsingRequestLine(unittest.TestCase):
             num_bytes_per_read=3
         )
         with self.assertRaises(Exception):
-            self.loop.run_until_complete(request_from_reader(mock_reader))
+            self.loop.run_until_complete(Request.from_reader(mock_reader))
 
     def test_invalid_version_in_request_line(self) -> None:
         # Test: Invalid version in Request line
@@ -103,7 +103,7 @@ class TestRequestParsingRequestLine(unittest.TestCase):
             num_bytes_per_read=50
         )
         with self.assertRaises(Exception):
-            self.loop.run_until_complete(request_from_reader(mock_reader))
+            self.loop.run_until_complete(Request.from_reader(mock_reader))
 
 
 class TestRequestParsingHeaders(unittest.TestCase):
@@ -121,7 +121,7 @@ class TestRequestParsingHeaders(unittest.TestCase):
                  "\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
             num_bytes_per_read=3
         )
-        r = self.loop.run_until_complete(request_from_reader(mock_reader))
+        r = self.loop.run_until_complete(Request.from_reader(mock_reader))
         self.assertIsNotNone(r)
         self.assertEqual(r.headers["host"], "localhost:42069")
         self.assertEqual(r.headers["user-agent"], "curl/7.81.0")
@@ -133,7 +133,7 @@ class TestRequestParsingHeaders(unittest.TestCase):
             data="GET / HTTP/1.1\r\n\r\n",
             num_bytes_per_read=3
         )
-        r = self.loop.run_until_complete(request_from_reader(mock_reader))
+        r = self.loop.run_until_complete(Request.from_reader(mock_reader))
         self.assertIsNotNone(r)
         self.assertEqual(len(r.headers), 0)
 
@@ -144,7 +144,7 @@ class TestRequestParsingHeaders(unittest.TestCase):
             num_bytes_per_read=3
         )
         with self.assertRaises(Exception):
-            self.loop.run_until_complete(request_from_reader(mock_reader))
+            self.loop.run_until_complete(Request.from_reader(mock_reader))
 
     def test_duplicate_headers(self) -> None:
         # Test: Duplicate Headers
@@ -153,7 +153,7 @@ class TestRequestParsingHeaders(unittest.TestCase):
                  "\r\nHost: duplicate:8080\r\n\r\n",
             num_bytes_per_read=3
         )
-        r = self.loop.run_until_complete(request_from_reader(mock_reader))
+        r = self.loop.run_until_complete(Request.from_reader(mock_reader))
         self.assertIsNotNone(r)
         self.assertEqual(r.headers["host"], "localhost:42069,duplicate:8080")
 
@@ -164,7 +164,7 @@ class TestRequestParsingHeaders(unittest.TestCase):
                  "\r\nUSER-AGENT: curl/7.81.0\r\n\r\n",
             num_bytes_per_read=3
         )
-        r = self.loop.run_until_complete(request_from_reader(mock_reader))
+        r = self.loop.run_until_complete(Request.from_reader(mock_reader))
         self.assertIsNotNone(r)
         self.assertEqual(r.headers["host"], "localhost:42069")
         self.assertEqual(r.headers["user-agent"], "curl/7.81.0")
@@ -176,7 +176,7 @@ class TestRequestParsingHeaders(unittest.TestCase):
             num_bytes_per_read=3
         )
         with self.assertRaises(Exception):
-            self.loop.run_until_complete(request_from_reader(mock_reader))
+            self.loop.run_until_complete(Request.from_reader(mock_reader))
 
 
 class TestRequestParsingBody(unittest.TestCase):
@@ -194,7 +194,7 @@ class TestRequestParsingBody(unittest.TestCase):
                  "\r\nContent-Length: 13\r\n\r\nhello world!\n",
             num_bytes_per_read=3
         )
-        r = self.loop.run_until_complete(request_from_reader(mock_reader))
+        r = self.loop.run_until_complete(Request.from_reader(mock_reader))
         self.assertIsNotNone(r)
         self.assertEqual(r.body.decode("utf-8"), "hello world!\n")
 
@@ -205,7 +205,7 @@ class TestRequestParsingBody(unittest.TestCase):
                  "\r\nContent-Length: 0\r\n\r\n",
             num_bytes_per_read=3
         )
-        r = self.loop.run_until_complete(request_from_reader(mock_reader))
+        r = self.loop.run_until_complete(Request.from_reader(mock_reader))
         self.assertIsNotNone(r)
         self.assertEqual(r.body.decode("utf-8"), "")
 
@@ -217,7 +217,7 @@ class TestRequestParsingBody(unittest.TestCase):
             num_bytes_per_read=3
         )
         with self.assertRaises(Exception):
-            self.loop.run_until_complete(request_from_reader(mock_reader))
+            self.loop.run_until_complete(Request.from_reader(mock_reader))
 
     def test_body_with_no_content_length(self) -> None:
         # Test: No Content-Length but Body Exists
@@ -225,6 +225,6 @@ class TestRequestParsingBody(unittest.TestCase):
             data="POST /submit HTTP/1.1\r\nHost: localhost:42069\r\n\r\nhello world!\n",
             num_bytes_per_read=3
         )
-        r = self.loop.run_until_complete(request_from_reader(mock_reader))
+        r = self.loop.run_until_complete(Request.from_reader(mock_reader))
         self.assertIsNotNone(r)
         self.assertEqual(r.body.decode("utf-8"), "")

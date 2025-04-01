@@ -68,7 +68,7 @@ class Writer:
         return total_written
 
     def get_drain_future(self) -> Optional[Coroutine[Any, Any, None]]:
-        if self._needs_drain:
+        if self._needs_drain and not self.writer.is_closing():
             self._needs_drain = False
             return self.writer.drain()
         return None

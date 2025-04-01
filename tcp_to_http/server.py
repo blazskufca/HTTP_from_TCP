@@ -1,10 +1,11 @@
 import asyncio
+import inspect
 import signal
 import sys
 from typing import Callable
 
 from .logger import get_logger
-from .request import Request, request_from_reader
+from .request import Request
 from .response_writer import Writer
 from .responses import StatusCode, get_default_headers
 
@@ -20,7 +21,7 @@ class Server:
         self.path_handlers = {}
 
     def register_handler(
-        self, path: str, handler: Callable[[Writer, Request], None]
+        self, path: str, handler: Handler
     ) -> None:
         self.path_handlers[path] = handler
 
@@ -35,7 +36,7 @@ class Server:
         try:
             logger.debug(f"Awaiting request from {client_id}")
             r = await asyncio.wait_for(
-                request_from_reader(reader), timeout=self.connection_timeout
+                Request.from_reader(reader), timeout=self.connection_timeout
             )
             method = r.request_line.method
             path = r.request_line.request_target
@@ -50,7 +51,11 @@ class Server:
                     await drain_future
                 return
 
-            handler(w, r)
+            if inspect.iscoroutinefunction(handler):
+                await handler(w, r)
+            else:
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(None, handler, w, r)
 
             drain_future = w.get_drain_future()
             if drain_future:
@@ -100,7 +105,8 @@ class Server:
 
         await server.serve_forever()
 
-    async def __shutdown(self, server: asyncio.Server) -> None:
+    @staticmethod
+    async def __shutdown(server: asyncio.Server) -> None:
         logger.info("Shutting down server gracefully...")
 
         tasks = asyncio.all_tasks()

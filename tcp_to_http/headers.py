@@ -1,7 +1,7 @@
 from typing import Optional
 
 # Constants
-CRLF = "\r\n"
+CRLF = b"\r\n"
 TOKEN_CHARS = {ord(c) for c in "!#$%&'*+-.^_`|~"}
 
 class Headers(dict):
@@ -30,7 +30,7 @@ class Headers(dict):
         return super().get(key.lower(), default)
 
     def parse(self, data: bytes) -> tuple[int, bool]:
-        idx = data.find(CRLF.encode("utf-8"))
+        idx = data.find(CRLF)
         if idx == -1:
             return 0, False
         if idx == 0:
@@ -62,9 +62,9 @@ class Headers(dict):
     def __valid_tokens(self, data: bytes) -> bool:
         for c in data:
             if not (
-                    (c >= ord("A") and c <= ord("Z")) or
-                    (c >= ord("a") and c <= ord("z")) or
-                    (c >= ord("0") and c <= ord("9")) or
+                    (ord("A") <= c <= ord("Z")) or
+                    (ord("a") <= c <= ord("z")) or
+                    (ord("0") <= c <= ord("9")) or
                     c in TOKEN_CHARS
             ):
                 return False
