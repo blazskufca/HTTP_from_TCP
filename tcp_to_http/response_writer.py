@@ -1,7 +1,9 @@
 import asyncio
+import gzip
+import zlib
 from collections.abc import Coroutine
 from enum import IntEnum, auto
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from .headers import Headers
 from .responses import StatusCode, get_status_line
@@ -13,10 +15,95 @@ class WriterState(IntEnum):
     BODY = auto()
 
 class Writer:
-    def __init__(self, writer: asyncio.StreamWriter) -> None:
+    def __init__(self,
+                 writer: asyncio.StreamWriter,
+                 compression: Optional[str] = None) -> None:
         self.writer_state = WriterState.STATUS_LINE
         self.writer = writer
         self._needs_drain = False
+        self.__compression = compression
+        self.__compressor = None
+        if compression == "deflate":
+            self.__compressor = zlib.compressobj(
+                zlib.Z_BEST_COMPRESSION,
+                zlib.DEFLATED,
+                -zlib.MAX_WBITS
+            )
+        self.__chunked_encoding = False
+
+    @staticmethod
+    def get_default_headers(content_len: int) -> Headers:
+        h = Headers()
+        h["content-length"] = str(content_len)
+        h["connection"] = "close"
+        h["content-type"] = "text/plain"
+        return h
+
+    def __compress_data(self, data: Union[str, bytes]) -> bytes:
+        if not self.__compression:
+            if isinstance(data, str):
+                return data.encode("utf-8")
+            return data
+
+        if isinstance(data, str):
+            data = data.encode("utf-8")
+
+        if self.__compression == "gzip":
+            import io
+            buffer = io.BytesIO()
+            with gzip.GzipFile(
+                    fileobj=buffer,
+                    mode="wb",
+                    compresslevel=zlib.Z_BEST_COMPRESSION) as gz:
+                gz.write(data)
+            return buffer.getvalue()
+        elif self.__compression == "deflate":
+            if not self.__compressor:
+                self.__compressor = zlib.compressobj(
+                    zlib.Z_BEST_COMPRESSION,
+                    zlib.DEFLATED,
+                    -zlib.MAX_WBITS
+                )
+            compressed = self.__compressor.compress(data)
+            compressed += self.__compressor.flush(zlib.Z_FINISH)
+            self.__compressor = zlib.compressobj(
+                zlib.Z_BEST_COMPRESSION,
+                zlib.DEFLATED,
+                -zlib.MAX_WBITS
+            )
+            return compressed
+        return data
+
+    def write_response(self,
+                       status_code: StatusCode,
+                       headers: Optional[Headers],
+                       body: str) -> None:
+        if not headers:
+            headers = self.get_default_headers(len(body))
+        encoded_body = body.encode("utf-8")
+        compressed_body = None
+
+        if self.__compression:
+            compressed_body = self.__compress_data(encoded_body)
+            headers["content-encoding"] = self.__compression
+            headers["vary"] = "Accept-Encoding"
+            headers["content-length"] = str(len(compressed_body))
+        else:
+            headers["content-length"] = str(len(encoded_body))
+
+        headers["connection"] = "close"
+        if "content-type" not in headers:
+            headers["content-type"] = "text/plain"
+
+        self.write_status_line(status_code)
+        self.write_headers(headers)
+
+        if compressed_body:
+            self.writer.write(compressed_body)
+        else:
+            self.writer.write(encoded_body)
+
+        self._needs_drain = True
 
     def write_status_line(self, status_code: StatusCode) -> None:
         if self.writer_state != WriterState.STATUS_LINE:

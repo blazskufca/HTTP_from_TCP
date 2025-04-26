@@ -1,7 +1,5 @@
 from enum import IntEnum
 
-from .headers import Headers
-
 
 class StatusCode(IntEnum):
     OK = 200
@@ -20,10 +18,3 @@ def get_status_line(status_code: StatusCode) -> bytes:
     }
     return status_lines.get(status_code,
                             f"HTTP/1.1 {status_code} \r\n").encode("utf-8")
-
-def get_default_headers(content_len: int) -> Headers:
-    h = Headers()
-    h["content-length"] = str(content_len)
-    h["connection"] = "close"
-    h["content-type"] = "text/plain"
-    return h
